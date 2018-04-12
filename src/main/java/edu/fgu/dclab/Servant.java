@@ -2,12 +2,23 @@ package edu.fgu.dclab;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.concurrent.BlockingQueue;
 
 public class Servant implements Runnable {
     Socket socket = null;
+    BlockingQueue<String> messageQueue = null;
+    PrintWriter out = null;
 
     public Servant(Socket socket) {
         this.socket = socket;
+    }
+
+    public void setMessageQueue(BlockingQueue queue) {
+        this.messageQueue = queue;
+    }
+
+    public void write(String msg) {
+        this.out.println(msg);
     }
 
     @Override
@@ -19,15 +30,23 @@ public class Servant implements Runnable {
                 new InputStreamReader(this.socket.getInputStream())
             );
 
-            PrintWriter out = new PrintWriter(
+            //PrintWriter out = new PrintWriter(
+        ) {
+            this.out = new PrintWriter(
                 this.socket.getOutputStream(),
                 true
             );
-        ) {
-            out.println("Welcome visitor!" + "\n");
+
+            this.out.println("Welcome visitor!" + "\n");
 
             while ((line = in.readLine()) != null) {
-                out.println(line);
+                try {
+                    messageQueue.put(line);
+                }
+                catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+//                out.println(line);
             }
         }
         catch (IOException e) {
