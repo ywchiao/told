@@ -11,7 +11,7 @@ public class Server {
     private ChatRoom chatRoom;
 
     public Server() {
-        chatRoom = new ChatRoom();
+        this.chatRoom = new ChatRoom();
 
         new Thread(chatRoom).start();
 
@@ -21,12 +21,7 @@ public class Server {
             while (true) {
                 Socket clientSocket = serverSocket.accept();
 
-                Servant servant = new Servant(clientSocket);
-
-                chatRoom.enter(servant);
-
-                new Thread(servant).start();
-//                new Thread(new Servant(clientSocket)).start();
+                this.chatRoom.enter(clientSocket);
             }
         }
         catch (IOException e) {

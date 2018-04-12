@@ -29,15 +29,11 @@ public class Servant implements Runnable {
             BufferedReader in = new BufferedReader(
                 new InputStreamReader(this.socket.getInputStream())
             );
-
-            //PrintWriter out = new PrintWriter(
         ) {
             this.out = new PrintWriter(
                 this.socket.getOutputStream(),
                 true
             );
-
-            this.out.println("Welcome visitor!" + "\n");
 
             while ((line = in.readLine()) != null) {
                 try {
@@ -46,7 +42,6 @@ public class Servant implements Runnable {
                 catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-//                out.println(line);
             }
         }
         catch (IOException e) {
