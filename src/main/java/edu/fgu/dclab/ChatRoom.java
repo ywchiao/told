@@ -6,29 +6,44 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 
 public class ChatRoom implements Runnable {
-    private BlockingQueue<String> messageQueue = new LinkedBlockingDeque<>();;
+    private int roomNumber = 0;
+
+    private BlockingQueue<Message> messageQueue = new LinkedBlockingDeque<>();
     private Vector<Servant> servants = new Vector<>();
 
     public void enter(Socket client) {
-        Servant servant = new Servant(client);
-
-        servant.setMessageQueue(this.messageQueue);
-
-        servant.write("Welcome visitor!" + "\n");
+        Servant servant = new Servant(client, this);
 
         servants.add(servant);
 
         new Thread(servant).start();
     } // enter()
 
+    public int getNumberOfGuests() {
+        return servants.size();
+    }
+
+    public int getRoomNumber() {
+        return this.roomNumber;
+    }
+
+    public void multicast(Message message) {
+        try {
+            this.messageQueue.put(message);
+        }
+        catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
     @Override
     public void run() {
         try {
             while (true) {
-                String message = this.messageQueue.take();
+                Message message = this.messageQueue.take();
 
                 for (Servant servant : servants) {
-                    servant.write(message);
+                    servant.process(message);
                 }
             }
         }

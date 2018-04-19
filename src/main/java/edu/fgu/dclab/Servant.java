@@ -2,50 +2,106 @@ package edu.fgu.dclab;
 
 import java.io.*;
 import java.net.Socket;
-import java.util.concurrent.BlockingQueue;
+import java.text.MessageFormat;
 
 public class Servant implements Runnable {
-    Socket socket = null;
-    BlockingQueue<String> messageQueue = null;
-    PrintWriter out = null;
+    private ObjectOutputStream out = null;
+    private String source = null;
 
-    public Servant(Socket socket) {
+    private Socket socket = null;
+
+    private ChatRoom room = null;
+
+    public Servant(Socket socket, ChatRoom room) {
+        this.room = room;
         this.socket = socket;
+
+        try {
+            this.out = new ObjectOutputStream(
+                this.socket.getOutputStream()
+            );
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        greet();
     }
 
-    public void setMessageQueue(BlockingQueue queue) {
-        this.messageQueue = queue;
+    public void process(Message message) {
+        switch (message.getType()) {
+            case Message.ROOM_STATE:
+                this.write(message);
+                break;
+
+            case Message.CHAT:
+                this.write(message);
+                break;
+
+            case Message.LOGIN:
+                if (this.source == null) {
+                    this.source = ((LoginMessage) message).ID;
+                    this.room.multicast(new ChatMessage(
+                        "MurMur",
+                        MessageFormat.format("{0} 進入了聊天室。", this.source)
+                    ));
+
+                    this.room.multicast(new RoomMessage(
+                        room.getRoomNumber(),
+                        room.getNumberOfGuests()
+                    ));
+                }
+
+                break;
+
+            default:
+        }
     }
 
-    public void write(String msg) {
-        this.out.println(msg);
+    private void write(Message message) {
+        try {
+            this.out.writeObject(message);
+            this.out.flush();
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void greet() {
+        String[] greetings = {
+            "歡迎來到 MurMur 聊天室",
+            "請問你的【暱稱】?"
+        };
+
+        for (String msg : greetings) {
+            write(new ChatMessage("MurMur", msg));
+        }
     }
 
     @Override
     public void run() {
-        String line;
+        Message message;
 
         try (
-            BufferedReader in = new BufferedReader(
-                new InputStreamReader(this.socket.getInputStream())
-            );
+            ObjectInputStream in = new ObjectInputStream(
+                this.socket.getInputStream()
+            )
         ) {
-            this.out = new PrintWriter(
-                this.socket.getOutputStream(),
-                true
-            );
+            this.process((Message)in.readObject());
 
-            while ((line = in.readLine()) != null) {
-                try {
-                    messageQueue.put(line);
-                }
-                catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+            while ((message = (Message) in.readObject()) != null) {
+                this.room.multicast(message);
             }
+
+            this.out.close();
         }
         catch (IOException e) {
-            System.out.println("NetReader I/O Exc eption");
+            System.out.println("Servant: I/O Exc eption");
+            e.printStackTrace();
+        }
+        catch (ClassNotFoundException e) {
+            e.printStackTrace();
         }
     }
 }
