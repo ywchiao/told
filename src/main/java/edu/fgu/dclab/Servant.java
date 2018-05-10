@@ -3,6 +3,7 @@ package edu.fgu.dclab;
 import java.io.*;
 import java.net.Socket;
 import java.text.MessageFormat;
+import java.time.ZonedDateTime;
 
 public class Servant implements Runnable {
     private ObjectOutputStream out = null;
@@ -35,7 +36,19 @@ public class Servant implements Runnable {
                 break;
 
             case Message.CHAT:
-                this.write(message);
+                if ("time?".equals(((ChatMessage) message).MESSAGE)) {
+                    this.write(new ChatMessage(
+                        "NurMur",
+                        MessageFormat.format(
+                            "目前時間：{0}",
+                            ZonedDateTime.now().toString()
+                        )
+                    ));
+                }
+                else {
+                    this.room.multicast(message);
+                }
+
                 break;
 
             case Message.LOGIN:
@@ -58,7 +71,7 @@ public class Servant implements Runnable {
         }
     }
 
-    private void write(Message message) {
+    public void write(Message message) {
         try {
             this.out.writeObject(message);
             this.out.flush();
@@ -88,11 +101,11 @@ public class Servant implements Runnable {
                 this.socket.getInputStream()
             )
         ) {
-            this.process((Message)in.readObject());
+//            this.process((Message)in.readObject());
 
             while ((message = (Message) in.readObject()) != null) {
-                this.room.multicast(message);
-            }
+                this.process(message);
+            } // od
 
             this.out.close();
         }

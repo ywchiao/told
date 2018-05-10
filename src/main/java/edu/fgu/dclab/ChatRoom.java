@@ -43,7 +43,7 @@ public class ChatRoom implements Runnable {
                 Message message = this.messageQueue.take();
 
                 for (Servant servant : servants) {
-                    servant.process(message);
+                    servant.write(message);
                 }
             }
         }
