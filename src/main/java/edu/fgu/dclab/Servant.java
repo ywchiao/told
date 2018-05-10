@@ -38,7 +38,7 @@ public class Servant implements Runnable {
             case Message.CHAT:
                 if ("time?".equals(((ChatMessage) message).MESSAGE)) {
                     this.write(new ChatMessage(
-                        "NurMur",
+                        "MurMur",
                         MessageFormat.format(
                             "目前時間：{0}",
                             ZonedDateTime.now().toString()
